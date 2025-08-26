@@ -1,95 +1,109 @@
 // src/PedidosView.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PurchasesTable from './PurchasesTable';
 import DetailsModal from './DetailsModal';
-import { supabase } from './supabaseClient';
 import EditModal from './EditModal';
+import { supabase } from './supabaseClient';
+import { Snackbar, Alert } from '@mui/material'; // Importar componentes de notificação
 
-
-function PedidosView({ data }) {
+function PedidosView({ data: initialData }) {
+  const [pedidos, setPedidos] = useState(initialData);
   const [selectedItem, setSelectedItem] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
 
-  const handleViewDetails = (item) => {
-    setSelectedItem(item);
+  // Sincroniza o estado se os dados iniciais mudarem
+  useEffect(() => {
+    setPedidos(initialData);
+  }, [initialData]);
+
+  const showNotification = (message, severity = 'success') => {
+    setNotification({ open: true, message, severity });
   };
 
-  const handleCloseModal = () => {
-    setSelectedItem(null);
-  };
-const handleEditItem = (item) => {
-    setEditingItem(item);
-  };
+  const handleViewDetails = (item) => setSelectedItem(item);
+  const handleCloseModal = () => setSelectedItem(null);
+  const handleEditItem = (item) => setEditingItem(item);
+  const handleCloseEditModal = () => setEditingItem(null);
 
-  const handleCloseEditModal = () => {
-    setEditingItem(null);
-  };
-
+  // --- MELHORIA: ATUALIZAÇÃO EM TEMPO REAL ---
   const handleSaveItem = async (updatedItem) => {
-    // Lógica para salvar no Supabase
     const { error } = await supabase
       .from('purchase')
-      .update({ 
+      .update({
         description: updatedItem.description,
-        value: Number(updatedItem.value), // Garante que o valor seja um número
+        value: Number(updatedItem.value),
         pay: updatedItem.pay,
         payment_stat: updatedItem.payment_stat
-       })
+      })
       .eq('id', updatedItem.id);
 
     if (error) {
-      alert('Erro ao atualizar o pedido: ' + error.message);
+      showNotification(`Erro ao atualizar: ${error.message}`, 'error');
     } else {
-      alert('Pedido atualizado com sucesso!');
-      // Fecha o modal
+      // Atualiza o estado localmente, sem recarregar a página
+      setPedidos(pedidos.map(p => (p.id === updatedItem.id ? updatedItem : p)));
+      showNotification('Pedido atualizado com sucesso!');
       handleCloseEditModal();
-      // A forma mais simples de ver a atualização é recarregar a página.
-      // Podemos melhorar isso depois para ser mais dinâmico.
-      window.location.reload();
     }
   };
+
+  // --- MELHORIA: DELEÇÃO EM TEMPO REAL ---
   const handleDeleteItem = async (itemToDelete) => {
-    // Usamos a confirmação padrão do navegador, que é simples e eficaz.
-    const isConfirmed = window.confirm(`Tem certeza que deseja excluir o pedido #${itemToDelete.id}? Esta ação não pode ser desfeita.`);
+    const isConfirmed = window.confirm(`Tem certeza que deseja excluir o pedido #${itemToDelete.id}?`);
+    if (!isConfirmed) return;
 
-    // Se o usuário não confirmar, a função para aqui.
-    if (!isConfirmed) {
-      return;
-    }
-
-    // Lógica para deletar no Supabase
     const { error } = await supabase
       .from('purchase')
       .delete()
       .eq('id', itemToDelete.id);
 
     if (error) {
-      alert('Erro ao excluir o pedido: ' + error.message);
+      showNotification(`Erro ao excluir: ${error.message}`, 'error');
     } else {
-      alert('Pedido excluído com sucesso!');
-      // Recarrega a página para mostrar a lista atualizada.
-      window.location.reload();
+      // Remove o item do estado local, sem recarregar a página
+      setPedidos(pedidos.filter(p => p.id !== itemToDelete.id));
+      showNotification('Pedido excluído com sucesso!');
     }
   };
+
   return (
     <>
-      <PurchasesTable data={data} 
-      onViewDetails={handleViewDetails} 
-      onEditItem={handleEditItem} 
-      onDeleteItem={handleDeleteItem} />
+      <PurchasesTable 
+        data={pedidos} // Usa o estado local em vez da prop inicial
+        onViewDetails={handleViewDetails} 
+        onEditItem={handleEditItem} 
+        onDeleteItem={handleDeleteItem} 
+      />
 
       <DetailsModal
         item={selectedItem}
         open={!!selectedItem}
         onClose={handleCloseModal}
       />
+
       <EditModal 
         item={editingItem}
         open={!!editingItem}
         onClose={handleCloseEditModal}
         onSave={handleSaveItem}
-        onDeleteItem={handleDeleteItem}
       />
+
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={4000}
+        onClose={() => setNotification(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setNotification(prev => ({ ...prev, open: false }))}
+          severity={notification.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 }
