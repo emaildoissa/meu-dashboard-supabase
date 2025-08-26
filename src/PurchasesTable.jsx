@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 // Função para formatar o valor como moeda brasileira (BRL)
 const formatCurrency = (value) => {
@@ -48,7 +49,7 @@ const StatusChip = ({ status }) => {
 };
 
 // A função agora recebe 'onViewDetails' para o modal funcionar
-function PurchasesTable({ data, onViewDetails }) {
+function PurchasesTable({ data, onViewDetails, onEditItem, onDeleteItem }) {
   if (!data || data.length === 0) {
     return <p>Nenhuma compra encontrada.</p>;
   }
@@ -99,10 +100,15 @@ function PurchasesTable({ data, onViewDetails }) {
                     </IconButton>
                 </Tooltip>
                 <Tooltip title="Editar">
-                    <IconButton onClick={() => alert(`Editar item #${row.id}`)}>
+                    <IconButton onClick={() => onEditItem(row)}>
                         <EditIcon />
                     </IconButton>
                 </Tooltip>
+                <Tooltip title="Excluir">
+      <IconButton onClick={() => onDeleteItem(row)}>
+          <DeleteIcon />
+      </IconButton>
+  </Tooltip>
               </TableCell>
             </TableRow>
           ))}

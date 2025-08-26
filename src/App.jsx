@@ -1,4 +1,4 @@
-// src/App.jsx - Versão Final com Carregamento em Tela Cheia
+// src/App.jsx - Versão Final com Carregamento em Tela Cheia e Verificação de Erro Completa
 
 import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
@@ -8,6 +8,7 @@ import { CircularProgress, Box, Typography } from '@mui/material';
 function App() {
   const [pedidosData, setPedidosData] = useState([]);
   const [kpiData, setKpiData] = useState({});
+  const [chartData, setChartData] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -16,14 +17,23 @@ function App() {
       setLoading(true);
       setError(null);
       try {
-        const [pedidosResult, totalVendasResult, faturamentoResult] = await Promise.all([
+        const [
+            pedidosResult, 
+            totalVendasResult, 
+            faturamentoResult, 
+            chartResult
+        ] = await Promise.all([
           supabase.from('purchase').select('*').order('id', { ascending: false }),
           supabase.from('purchase').select('id', { count: 'exact', head: true }),
-          supabase.from('purchase').select('value').eq('pay', true)
+          supabase.from('purchase').select('value').eq('pay', true),
+          supabase.rpc('get_sales_by_hour') 
         ]);
 
-        if (pedidosResult.error || totalVendasResult.error || faturamentoResult.error) {
-          throw pedidosResult.error || totalVendasResult.error || faturamentoResult.error;
+        // --- CORREÇÃO APLICADA AQUI ---
+        // Agora verificamos o erro de TODAS as 4 buscas.
+        if (pedidosResult.error || totalVendasResult.error || faturamentoResult.error || chartResult.error) {
+          // Se qualquer uma delas der erro, jogamos o erro para o 'catch'.
+          throw pedidosResult.error || totalVendasResult.error || faturamentoResult.error || chartResult.error;
         }
 
         const totalVendas = totalVendasResult.count;
@@ -31,10 +41,11 @@ function App() {
         
         setPedidosData(pedidosResult.data);
         setKpiData({ totalVendas, faturamentoTotal });
+        setChartData(chartResult.data);
 
       } catch (fetchError) {
         setError('Não foi possível buscar os dados.'); 
-        console.error(fetchError);
+        console.error("Erro detalhado:", fetchError); // Adicionado para facilitar o debug
       } finally {
         setLoading(false);
       }
@@ -42,24 +53,15 @@ function App() {
     fetchData();
   }, []);
 
-  // SE ESTIVER CARREGANDO, RETORNA APENAS ESTE BLOCO
+  // O resto do componente continua o mesmo...
   if (loading) {
     return (
-      // Este Box é a chave. Ele cria um contêiner de tela cheia e centraliza o conteúdo.
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', // Centraliza na horizontal
-          alignItems: 'center',    // Centraliza na vertical
-          minHeight: '100vh'        // Garante que o contêiner tenha a altura da tela
-        }}
-      >
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
         <CircularProgress />
       </Box>
     );
   }
 
-  // SE DER ERRO, RETORNA APENAS ESTE BLOCO
   if (error) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
@@ -68,12 +70,12 @@ function App() {
     );
   }
 
-  // SE NÃO ESTIVER CARREGANDO E NÃO HOUVER ERRO, MOSTRA O DASHBOARD
   return (
     <div className="App">
       <DashboardLayout 
         data={pedidosData} 
         kpiData={kpiData}
+        chartData={chartData}
       />
     </div>
   );
