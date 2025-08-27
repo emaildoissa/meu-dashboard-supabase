@@ -10,8 +10,11 @@ import {
   Avatar, 
   ListItemAvatar,
   Box,
-  Divider
+  Divider,
+  Chip // Adicionado para o status
 } from '@mui/material';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 
 const formatConversationId = (id) => {
   if (!id) return '...';
@@ -41,54 +44,16 @@ function ConversationList({ conversations, onSelectConversation, activeConversat
         borderRadius: 0
       }}
     >
-      {/* Cabeçalho */}
-      <Box 
-        sx={{ 
-          p: 2, 
-          borderBottom: '1px solid #e0e0e0',
-          backgroundColor: '#fafafa'
-        }}
-      >
-        <Typography variant="h6" fontWeight="600" color="text.primary">
-          Conversas
-        </Typography>
+      <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0', backgroundColor: '#fafafa' }}>
+        <Typography variant="h6" fontWeight="600" color="text.primary">Conversas</Typography>
         <Typography variant="caption" color="text.secondary">
           {conversations.length} conversa{conversations.length !== 1 ? 's' : ''}
         </Typography>
       </Box>
-
-      {/* Lista de Conversas */}
-      <List 
-        sx={{ 
-          flex: 1, 
-          overflowY: 'auto', 
-          p: 0,
-          '&::-webkit-scrollbar': {
-            width: '6px',
-          },
-          '&::-webkit-scrollbar-track': {
-            backgroundColor: '#f1f1f1',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: '#c1c1c1',
-            borderRadius: '3px',
-          },
-          '&::-webkit-scrollbar-thumb:hover': {
-            backgroundColor: '#a8a8a8',
-          },
-        }}
-      >
+      <List sx={{ flex: 1, overflowY: 'auto', p: 0 }}>
         {conversations.length === 0 ? (
-          <Box 
-            sx={{ 
-              p: 3, 
-              textAlign: 'center',
-              color: 'text.secondary'
-            }}
-          >
-            <Typography variant="body2">
-              Nenhuma conversa disponível
-            </Typography>
+          <Box sx={{ p: 3, textAlign: 'center', color: 'text.secondary' }}>
+            <Typography variant="body2">Nenhuma conversa disponível</Typography>
           </Box>
         ) : (
           conversations.map((convo, index) => (
@@ -96,84 +61,31 @@ function ConversationList({ conversations, onSelectConversation, activeConversat
               <ListItem disablePadding>
                 <ListItemButton
                   selected={activeConversationId === convo.conversation_id}
-                  onClick={() => onSelectConversation(convo.conversation_id)}
-                  sx={{
-                    py: 1.5,
-                    px: 2,
-                    '&.Mui-selected': {
-                      backgroundColor: 'primary.light',
-                      '&:hover': {
-                        backgroundColor: 'primary.light',
-                      },
-                      '& .MuiListItemText-primary': {
-                        color: 'primary.dark',
-                        fontWeight: 600,
-                      },
-                      '& .MuiAvatar-root': {
-                        backgroundColor: 'primary.main',
-                      }
-                    },
-                    '&:hover': {
-                      backgroundColor: 'grey.50',
-                    },
-                    transition: 'all 0.2s ease-in-out',
-                  }}
+                  // *** A CORREÇÃO ESTÁ AQUI: Passamos o objeto 'convo' inteiro ***
+                  onClick={() => onSelectConversation(convo)}
+                  sx={{ py: 1.5, px: 2, '&.Mui-selected': { backgroundColor: '#f0f4ff' } }}
                 >
                   <ListItemAvatar>
-                    <Avatar 
-                      sx={{ 
-                        bgcolor: activeConversationId === convo.conversation_id 
-                          ? 'primary.main' 
-                          : 'grey.400',
-                        color: 'white',
-                        width: 40,
-                        height: 40,
-                        fontSize: '0.875rem',
-                        fontWeight: 600
-                      }}
-                    >
-                      {getInitials(convo.conversation_id)}
+                    <Avatar sx={{ bgcolor: convo.status === 'human' ? 'warning.main' : 'primary.main' }}>
+                      {convo.status === 'human' ? <VpnKeyIcon fontSize="small" /> : getInitials(convo.conversation_id)}
                     </Avatar>
                   </ListItemAvatar>
-                  
                   <ListItemText 
-                    primary={
-                      <Typography
-                        variant="subtitle2"
-                        sx={{
-                          fontWeight: activeConversationId === convo.conversation_id ? 600 : 500,
-                          color: activeConversationId === convo.conversation_id 
-                            ? 'primary.dark' 
-                            : 'text.primary',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        {formatConversationId(convo.conversation_id)}
-                      </Typography>
-                    }
+                    primary={formatConversationId(convo.conversation_id)}
                     secondary={
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: 'text.secondary',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          display: 'block',
-                          mt: 0.25
-                        }}
-                      >
-                        {formatSnippet(convo.last_message_snippet)}
-                      </Typography>
+                      <Box component="span" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <Typography variant="caption" sx={{ color: 'text.secondary', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                           {formatSnippet(convo.last_message_snippet)}
+                         </Typography>
+                         {convo.status === 'human' && (
+                           <Chip label="Humano" color="warning" size="small" sx={{ height: '18px', fontSize: '0.65rem', ml: 1 }} />
+                         )}
+                      </Box>
                     }
                   />
                 </ListItemButton>
               </ListItem>
-              {index < conversations.length - 1 && (
-                <Divider variant="inset" component="li" />
-              )}
+              {index < conversations.length - 1 && <Divider variant="inset" component="li" />}
             </React.Fragment>
           ))
         )}

@@ -1,63 +1,31 @@
+// src/PurchasesTable.jsx
 import React from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, IconButton, Tooltip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-// Função para formatar o valor como moeda brasileira (BRL)
 const formatCurrency = (value) => {
-  // Adicionando uma verificação para garantir que o valor é um número
-  if (value == null || isNaN(value)) {
-    return 'R$ 0,00';
-  }
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
+  if (value == null || isNaN(value)) return 'R$ 0,00';
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
-// Componente para o Status (agora mais inteligente)
 const StatusChip = ({ status }) => {
-    let color = 'default';
-    let label = status ? String(status) : 'Indefinido';
-
+    let color = 'default', label = status ? String(status) : 'Indefinido';
     const lowerCaseStatus = label.toLowerCase();
-
-    if (lowerCaseStatus === 'pago') {
-        color = 'success';
-        label = 'Pago';
-    } else if (lowerCaseStatus === 'em analise' || lowerCaseStatus === 'em análise') {
-        color = 'warning';
-        label = 'Em Análise';
-    } else if (lowerCaseStatus === 'pendente') {
-        color = 'info';
-        label = 'Pendente';
-    }
-
+    if (lowerCaseStatus === 'pago') { color = 'success'; label = 'Pago'; }
+    else if (lowerCaseStatus === 'em analise' || lowerCaseStatus === 'em análise') { color = 'warning'; label = 'Em Análise'; }
+    else if (lowerCaseStatus === 'pendente') { color = 'info'; label = 'Pendente'; }
     return <Chip label={label} color={color} size="small" />;
 };
 
-// A função agora recebe 'onViewDetails' para o modal funcionar
-function PurchasesTable({ data, onViewDetails, onEditItem, onDeleteItem }) {
-  if (!data || data.length === 0) {
-    return <p>Nenhuma compra encontrada.</p>;
-  }
+// Adicionamos a nova prop onRowClick
+function PurchasesTable({ data, onViewDetails, onEditItem, onDeleteItem, onRowClick }) {
+  if (!data || data.length === 0) return <p>Nenhuma compra encontrada.</p>;
 
   return (
     <TableContainer component={Paper}>
       <Table sx={{ minWidth: 650 }} aria-label="purchases table">
-        {/* CABEÇALHO CORRIGIDO: Apenas uma coluna "Status" */}
         <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
           <TableRow>
             <TableCell>ID</TableCell>
@@ -68,47 +36,23 @@ function PurchasesTable({ data, onViewDetails, onEditItem, onDeleteItem }) {
             <TableCell align="right">Ações</TableCell>
           </TableRow>
         </TableHead>
-
-        {/* CORPO DA TABELA CORRIGIDO */}
         <TableBody>
           {data.map((row) => (
             <TableRow
               key={row.id}
-              sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+              hover // Adiciona efeito visual ao passar o mouse
+              onClick={() => onRowClick(row)} // *** AÇÃO ADICIONADA AQUI ***
+              sx={{ cursor: 'pointer', '&:last-child td, &:last-child th': { border: 0 } }}
             >
-              <TableCell component="th" scope="row">
-                #{row.id}
-              </TableCell>
+              <TableCell>{`#${row.id}`}</TableCell>
               <TableCell>{formatCurrency(row.value)}</TableCell>
-
-              {/* LÓGICA DE STATUS CORRIGIDA E UNIFICADA EM UMA ÚNICA CÉLULA */}
-              <TableCell>
-                {/* Verifica a coluna 'pago'. Se for 'true', mostra 'Pago'.
-                  Senão, mostra o que estiver na coluna 'status'.
-                */}
-                <StatusChip status={row.pay ? 'Pago' : row.status} />
-              </TableCell>
-
+              <TableCell><StatusChip status={row.pay ? 'Pago' : row.status} /></TableCell>
               <TableCell>{row.phone}</TableCell>
               <TableCell>{row.description}</TableCell>
-              
-              {/* AÇÕES CORRIGIDAS para usar a função do modal */}
               <TableCell align="right">
-                <Tooltip title="Ver Detalhes">
-                    <IconButton onClick={() => onViewDetails(row)}>
-                        <VisibilityIcon />
-                    </IconButton>
-                </Tooltip>
-                <Tooltip title="Editar">
-                    <IconButton onClick={() => onEditItem(row)}>
-                        <EditIcon />
-                    </IconButton>
-                </Tooltip>
-                <Tooltip title="Excluir">
-      <IconButton onClick={() => onDeleteItem(row)}>
-          <DeleteIcon />
-      </IconButton>
-  </Tooltip>
+                <Tooltip title="Ver Detalhes"><IconButton onClick={(e) => { e.stopPropagation(); onViewDetails(row); }}><VisibilityIcon /></IconButton></Tooltip>
+                <Tooltip title="Editar"><IconButton onClick={(e) => { e.stopPropagation(); onEditItem(row); }}><EditIcon /></IconButton></Tooltip>
+                <Tooltip title="Excluir"><IconButton onClick={(e) => { e.stopPropagation(); onDeleteItem(row); }}><DeleteIcon /></IconButton></Tooltip>
               </TableCell>
             </TableRow>
           ))}
@@ -118,5 +62,4 @@ function PurchasesTable({ data, onViewDetails, onEditItem, onDeleteItem }) {
   );
 }
 
-// CORRIGIDO: Removido o texto extra após o export
 export default PurchasesTable;
